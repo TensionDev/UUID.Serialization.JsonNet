@@ -1,0 +1,1 @@
+# UUID.Serialization.JsonNet
