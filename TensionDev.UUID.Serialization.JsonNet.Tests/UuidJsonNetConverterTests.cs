@@ -5,13 +5,13 @@ using Xunit;
 
 namespace TensionDev.UUID.Serialization.JsonNet.Tests
 {
-    public class TestUuidJsonNetConverter : IDisposable
+    public class UuidJsonNetConverterTests : IDisposable
     {
         private bool disposedValue;
 
         private readonly UuidJsonNetConverter _converter;
 
-        public TestUuidJsonNetConverter()
+        public UuidJsonNetConverterTests()
         {
             _converter = new UuidJsonNetConverter();
         }
