@@ -16,23 +16,25 @@ namespace TensionDev.UUID.Serialization.JsonNet.Tests
             _converter = new UuidJsonNetConverter();
         }
 
-        [Fact]
-        public void TestReadJson()
+        [Theory]
+        [InlineData("00000000-0000-0000-0000-000000000000")]
+        [InlineData("ffffffff-ffff-ffff-ffff-ffffffffffff")]
+        [InlineData("164a714c-0c79-11ec-82a8-0242ac130003")]
+        [InlineData("550e8400-e29b-41d4-a716-446655440000")]
+        [InlineData("1bf6935b-49e6-54cf-a9c8-51fb21c41b46")]
+        public void TestReadJson(string validUuidString)
         {
             // Arrange
-            const string validUuidString = "00000000-0000-0000-0000-000000000000";
             var readerMock = new Mock<JsonReader>(MockBehavior.Strict);
             readerMock.SetupGet(r => r.TokenType).Returns(JsonToken.String);
             readerMock.SetupGet(r => r.Value).Returns((object)validUuidString);
-
-            var converter = new UuidJsonNetConverter();
 
             // existingValue must be non-nullable; obtain an instance via Parse to satisfy parameter constraints.
             Uuid existingValue = Uuid.Parse(validUuidString);
             var serializer = new JsonSerializer();
 
             // Act
-            Uuid result = converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer);
+            Uuid result = _converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer);
 
             // Assert
             Assert.NotNull(result);
@@ -40,7 +42,32 @@ namespace TensionDev.UUID.Serialization.JsonNet.Tests
         }
 
         [Fact]
-        public void TestWriteJson()
+        public void TestReadJsonInvalidType()
+        {
+            // Arrange
+            const string validUuidString = "00000000-0000-0000-0000-000000000000";
+            var readerMock = new Mock<JsonReader>(MockBehavior.Strict);
+            readerMock.SetupGet(r => r.TokenType).Returns(JsonToken.Undefined);
+            readerMock.SetupGet(r => r.Value).Returns((object)validUuidString);
+
+            // existingValue must be non-nullable; obtain an instance via Parse to satisfy parameter constraints.
+            Uuid existingValue = Uuid.Parse(validUuidString);
+            var serializer = new JsonSerializer();
+
+            Assert.Throws<JsonSerializationException>(() =>
+            {
+                // Act
+                _converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer);
+            });
+        }
+
+        [Theory]
+        [InlineData("00000000-0000-0000-0000-000000000000")]
+        [InlineData("ffffffff-ffff-ffff-ffff-ffffffffffff")]
+        [InlineData("164a714c-0c79-11ec-82a8-0242ac130003")]
+        [InlineData("550e8400-e29b-41d4-a716-446655440000")]
+        [InlineData("1bf6935b-49e6-54cf-a9c8-51fb21c41b46")]
+        public void TestWriteJson(string validUuidString)
         {
             var writerMock = new Mock<JsonWriter>(MockBehavior.Strict);
             object? capturedValue = null;
@@ -51,28 +78,7 @@ namespace TensionDev.UUID.Serialization.JsonNet.Tests
 
             var serializerMock = new Mock<JsonSerializer>(MockBehavior.Loose);
 
-            // Attempt to create an instance of the Uuid type.
-            // This will succeed for structs and for classes with a public parameterless constructor.
-            // If it fails, mark test inconclusive because we cannot safely fabricate the dependency.
-            TensionDev.UUID.Uuid value;
-            try
-            {
-                var instance = Activator.CreateInstance(typeof(TensionDev.UUID.Uuid));
-                if (instance == null)
-                {
-                    // This can happen if the type is a non-instantiable class (abstract) or Activator returns null.
-                    Assert.Fail("Could not create an instance of TensionDev.UUID.Uuid (Activator.CreateInstance returned null). Provide a parameterless constructor or update the test environment.");
-                    return;
-                }
-                
-                value = (TensionDev.UUID.Uuid)instance;
-            }
-            catch (Exception ex)
-            {
-                // xUnit does not provide Assert.Inconclusive; use Assert.Fail to report the diagnostic and stop the test.
-                Assert.Fail("Could not create an instance of TensionDev.UUID.Uuid: " + ex.Message);
-                return;
-            }
+            TensionDev.UUID.Uuid value = TensionDev.UUID.Uuid.Parse(validUuidString);
 
             // Act
             _converter.WriteJson(writerMock.Object, value, serializerMock.Object);
