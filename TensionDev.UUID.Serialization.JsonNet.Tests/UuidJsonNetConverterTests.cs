@@ -17,48 +17,32 @@ namespace TensionDev.UUID.Serialization.JsonNet.Tests
         }
 
         [Theory]
-        [InlineData("00000000-0000-0000-0000-000000000000")]
-        [InlineData("ffffffff-ffff-ffff-ffff-ffffffffffff")]
-        [InlineData("164a714c-0c79-11ec-82a8-0242ac130003")]
-        [InlineData("550e8400-e29b-41d4-a716-446655440000")]
-        [InlineData("1bf6935b-49e6-54cf-a9c8-51fb21c41b46")]
-        public void TestReadJson(string validUuidString)
+        [ClassData(typeof(ReadJsonTestData))]
+        public void TestReadJson(JsonToken jsonToken, object value, bool throwsException)
         {
             // Arrange
             var readerMock = new Mock<JsonReader>(MockBehavior.Strict);
-            readerMock.SetupGet(r => r.TokenType).Returns(JsonToken.String);
-            readerMock.SetupGet(r => r.Value).Returns((object)validUuidString);
+            readerMock.SetupGet(r => r.TokenType).Returns(jsonToken);
+            readerMock.SetupGet(r => r.Value).Returns(value);
 
             // existingValue must be non-nullable; obtain an instance via Parse to satisfy parameter constraints.
-            Uuid existingValue = Uuid.Parse(validUuidString);
+            Uuid existingValue = Uuid.Max;
             var serializer = new JsonSerializer();
 
-            // Act
-            Uuid result = _converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal(validUuidString, result.ToString());
-        }
-
-        [Fact]
-        public void TestReadJsonInvalidType()
-        {
-            // Arrange
-            const string validUuidString = "00000000-0000-0000-0000-000000000000";
-            var readerMock = new Mock<JsonReader>(MockBehavior.Strict);
-            readerMock.SetupGet(r => r.TokenType).Returns(JsonToken.Undefined);
-            readerMock.SetupGet(r => r.Value).Returns((object)validUuidString);
-
-            // existingValue must be non-nullable; obtain an instance via Parse to satisfy parameter constraints.
-            Uuid existingValue = Uuid.Parse(validUuidString);
-            var serializer = new JsonSerializer();
-
-            Assert.Throws<JsonSerializationException>(() =>
+            if (throwsException)
+            {
+                // Act and Assert
+                Assert.Throws<JsonSerializationException>(() => _converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer));
+            }
+            else
             {
                 // Act
-                _converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer);
-            });
+                Uuid result = _converter.ReadJson(readerMock.Object, typeof(Uuid), existingValue, hasExistingValue: false, serializer: serializer);
+
+                // Assert
+                Assert.NotNull(result);
+                Assert.Equal(value.ToString(), result.ToString());
+            }
         }
 
         [Theory]
